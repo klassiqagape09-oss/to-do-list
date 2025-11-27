@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Responsive To-Do App</title>
+
+<style>
+/* ---------------- GLOBAL ---------------- */
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  background: #d4efdf;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+}
+
+/* ---------------- HEADER ---------------- */
+.header {
+  padding: 28px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+.header span {
+  color: #1fa463;
+  font-weight: 700;
+}
+
+.sub {
+  margin-top: 8px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* ---------------- ADD BUTTON ---------------- */
+.add-task-btn {
+  margin-top: 15px;
+  background: #1fa463;
+  padding: 12px 20px;
+  border-radius: 18px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  float: right;
+  box-shadow: 0 5px 14px rgba(31,164,99,0.3);
+  transition: .3s;
+}
+.add-task-btn:hover {
+  transform: scale(1.05);
+}
+
+/* ---------------- TASK LIST ---------------- */
+.task-list {
+  padding: 25px;
+}
+
+.task-card {
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+  margin-bottom: 18px;
+  border-left: 6px solid #7b8cff;
+  animation: fadeIn .3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.task-card h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.task-card p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.task-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.done-btn {
+  border: none;
+  background: #1fa463;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  border: none;
+  background: #ff5e5e;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* DONE STATE */
+.done {
+  opacity: 0.6;
+  text-decoration: line-through;
+  border-left-color: #999 !important;
+}
+
+/* ---------------- MODAL ---------------- */
+.modal-bg {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: rgba(0,0,0,0.4);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  opacity:0;
+  pointer-events:none;
+  transition:.3s;
+}
+
+.modal-bg.show {
+  opacity:1;
+  pointer-events:auto;
+}
+
+.modal {
+  background:white;
+  padding:25px;
+  width:90%;
+  max-width:350px;
+  border-radius:20px;
+  animation: scaleIn .3s ease;
+}
+
+@keyframes scaleIn {
+  from { transform:scale(0.7); opacity:0; }
+  to { transform:scale(1); opacity:1; }
+}
+
+.modal input, .modal textarea {
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  margin-bottom:15px;
+}
+
+.modal button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:#1fa463;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+
+/* ---------------- FOOTER NAV ---------------- */
+.navbar {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px 0;
+  background: black;
+  color: white;
+  border-radius: 30px 30px 0 0;
+}
+
+.nav-item {
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ---------------- RESPONSIVE ---------------- */
+@media (max-width: 480px) {
+  .header { padding: 20px; }
+  .task-list { padding: 20px; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h2>You’ve got <span id="taskCount">0 tasks</span> today</h2>
+    <p class="sub">Stay organized and productive</p>
+    <button class="add-task-btn" id="openModal">+ Add Task</button>
+  </div>
+
+  <div class="task-list" id="tasks"></div>
+
+  <!-- FOOTER NAV -->
+  <div class="navbar">
+    <div class="nav-item">Home</div>
+    <div class="nav-item">Tasks</div>
+    <div class="nav-item">Calendar</div>
+    <div class="nav-item">Profile</div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>Add New Task</h3>
+    <input id="taskTitle" placeholder="Task title">
+    <textarea id="taskDesc" placeholder="Description"></textarea>
+    <button id="saveTask">Add Task</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- TO-DO LOGIC ---------------- */
+
+let modalBg = document.getElementById("modalBg");
+let openModal = document.getElementById("openModal");
+let saveTask = document.getElementById("saveTask");
+
+let titleInput = document.getElementById("taskTitle");
+let descInput = document.getElementById("taskDesc");
+
+let tasksContainer = document.getElementById("tasks");
+let taskCount = document.getElementById("taskCount");
+
+let tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+
+openModal.onclick = () => {
+  modalBg.classList.add("show");
+};
+
+modalBg.onclick = (e) => {
+  if (e.target === modalBg) modalBg.classList.remove("show");
+};
+
+saveTask.onclick = () => {
+  let title = titleInput.value.trim();
+  let desc = descInput.value.trim();
+  if (!title) {
+    alert("Enter a task title");
+    return;
+  }
+
+  tasks.push({
+    id: Date.now(),
+    title,
+    desc,
+    done: false
+  });
+
+  titleInput.value = "";
+  descInput.value = "";
+
+  modalBg.classList.remove("show");
+
+  save();
+  render();
+};
+
+// Save to localStorage
+function save() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+// Render tasks
+function render() {
+  tasksContainer.innerHTML = "";
+  taskCount.innerText = tasks.length + " tasks";
+
+  tasks.forEach(task => {
+    let card = document.createElement("div");
+    card.className = "task-card";
+    if (task.done) card.classList.add("done");
+
+    card.innerHTML = `
+      <h3>${task.title}</h3>
+      <p>${task.desc || ""}</p>
+
+      <div class="task-actions">
+        <button class="done-btn">Done</button>
+        <button class="delete-btn">Delete</button>
+      </div>
+    `;
+
+    // Done / toggle
+    card.querySelector(".done-btn").onclick = () => {
+      task.done = !task.done;
+      save();
+      render();
+    };
+
+    // Delete
+    card.querySelector(".delete-btn").onclick = () => {
+      tasks = tasks.filter(t => t.id !== task.id);
+      save();
+      render();
+    };
+
+    tasksContainer.appendChild(card);
+  });
+}
+
+// Initialize
+render();
+</script>
+
+</body>
+</html>
